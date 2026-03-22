@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /js/
+Disallow: /css/
+Disallow: /icons/
+
+Sitemap: https://pragnahillcounty.com/sitemap.xml
