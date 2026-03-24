@@ -1,5 +1,9 @@
 document.body.classList.add("js-enabled")
 
+// ─── REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ───
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwC42r4M62NjzEWJlNXCvLq16BkQ5n8RSnoPk-KyvY7A6LCBEMdXhTMkD_D6f2TXzl1xA/exec"
+// ─────────────────────────────────────────────────────────────
+
 // Image load handling
 document.querySelectorAll("img[loading='lazy']").forEach(img => {
   if (img.complete) {
@@ -69,12 +73,23 @@ if (sections.length > 0 && "IntersectionObserver" in window) {
       if (!entry.isIntersecting) return
       const id = entry.target.getAttribute("id")
       navLinks.forEach(link => {
-        link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`)
+        link.classList.toggle("is-active", link.getAttribute("href") === "#" + id)
       })
     })
   }, {rootMargin: "-30% 0px -50% 0px"})
   sections.forEach(section => navObserver.observe(section))
 }
+
+// ─── Helper: send data to Google Sheets ───────────────────────
+function sendToGoogleSheet(payload) {
+  return fetch(GOOGLE_SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",           // required for Apps Script CORS
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+}
+// ──────────────────────────────────────────────────────────────
 
 // Lead Form
 const leadForm = document.getElementById("lead-form")
@@ -119,17 +134,23 @@ if (leadForm) {
 
     if (hasErrors) return
 
+    // Save to localStorage (backup)
     const leads = JSON.parse(localStorage.getItem("hillCountyLeads") || "[]")
     leads.push({...payload, capturedAt: new Date().toISOString()})
     localStorage.setItem("hillCountyLeads", JSON.stringify(leads))
 
+    // Send to Google Sheets
+    sendToGoogleSheet({ ...payload, source: "Contact Form" })
+      .catch(err => console.error("Sheet sync failed:", err))
+
+    // WhatsApp message
     const visitDateText = payload.visitDate ? `\nPreferred visit: ${payload.visitDate}` : ""
     const waMsg = encodeURIComponent(`Hi Pragna Hill County, I want a callback.\nName: ${payload.name}\nPhone: ${payload.phone}\nPlot: ${payload.interest}\nTimeline: ${payload.timeline}${visitDateText}`)
 
     const successBox = leadForm.querySelector(".form-success")
     if (successBox) {
-      successBox.hidden = false
-      successBox.innerHTML = `Request saved! <a href="https://wa.me/919849051515?text=${waMsg}" target="_blank" style="color:var(--brand);">Continue on WhatsApp</a>`
+      successBox.style.display = "block"
+      successBox.innerHTML = `Request saved! <a href="https://wa.me/918790387299?text=${waMsg}" target="_blank" style="color:var(--brand);">Continue on WhatsApp</a>`
     }
     leadForm.reset()
   })
@@ -154,6 +175,8 @@ if (downloadModal && downloadForm) {
     downloadForm.reset()
     downloadForm.querySelectorAll(".field-group").forEach(g => g.classList.remove("has-error"))
     downloadForm.querySelectorAll(".field-error").forEach(e => e.textContent = "")
+    const successEl = downloadForm.querySelector(".download-success")
+    if (successEl) successEl.style.display = "none"
   }
 
   modalBackdrop?.addEventListener("click", closeModal)
@@ -197,36 +220,39 @@ if (downloadModal && downloadForm) {
 
     if (hasErrors) return
 
+    // Save to localStorage (backup)
     const downloadLeads = JSON.parse(localStorage.getItem("hillCountyDownloadLeads") || "[]")
     downloadLeads.push({...payload, downloaded: pendingDownload, capturedAt: new Date().toISOString()})
     localStorage.setItem("hillCountyDownloadLeads", JSON.stringify(downloadLeads))
 
-    // Force download
-    const files = {brochure: "assets/brochure.pdf", layout: "assets/layout.pdf"}
+    // Send to Google Sheets
+    sendToGoogleSheet({ ...payload, source: `Download - ${pendingDownload}` })
+      .catch(err => console.error("Sheet sync failed:", err))
+
+    // Trigger file download
+    const files = {brochure: "brochure.pdf", layout: "layout.pdf"}
     const fileUrl = files[pendingDownload] || files.brochure
-    const fileName = fileUrl.split("/").pop()
-    
+
     fetch(fileUrl)
-      .then(response => response.blob())
+      .then(res => {
+        if (!res.ok) throw new Error('File not found')
+        return res.blob()
+      })
       .then(blob => {
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement("a")
+        const a = document.createElement('a')
         a.href = url
-        a.download = fileName
+        a.download = fileUrl.split('/').pop()
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
         window.URL.revokeObjectURL(url)
       })
       .catch(() => {
-        // Fallback if fetch fails
-        const a = document.createElement("a")
-        a.href = fileUrl
-        a.download = fileName
-        a.target = "_blank"
-        a.click()
+        window.open(fileUrl, '_blank')
       })
-
-    closeModal()
+      .finally(() => {
+        closeModal()
+      })
   })
 }

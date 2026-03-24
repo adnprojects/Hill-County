@@ -1,15 +1,22 @@
 /* Reveal Animations */
 .js-enabled .reveal{
 opacity:0;
+-webkit-transform:translateY(30px);
+-ms-transform:translateY(30px);
 transform:translateY(30px);
+-webkit-transition:opacity 0.6s cubic-bezier(0.22,1,0.36,1),-webkit-transform 0.6s cubic-bezier(0.22,1,0.36,1);
+-moz-transition:opacity 0.6s cubic-bezier(0.22,1,0.36,1),-moz-transform 0.6s cubic-bezier(0.22,1,0.36,1);
 transition:opacity 0.6s cubic-bezier(0.22,1,0.36,1),transform 0.6s cubic-bezier(0.22,1,0.36,1);
 }
 
 .js-enabled .reveal.is-visible{
 opacity:1;
+-webkit-transform:translateY(0);
+-ms-transform:translateY(0);
 transform:translateY(0);
 }
 
+/* Hero badge animation */
 @keyframes pulse-gold{
 0%,100%{box-shadow:0 0 0 0 rgba(201,165,90,0.4);}
 50%{box-shadow:0 0 0 8px rgba(201,165,90,0);}
@@ -19,11 +26,19 @@ transform:translateY(0);
 animation: pulse-gold 3s ease-in-out infinite;
 }
 
+/* Reduced motion support */
 @media (prefers-reduced-motion: reduce){
 .js-enabled .reveal{
 opacity:1;
+-webkit-transform:none;
+-ms-transform:none;
 transform:none;
+-webkit-transition:none;
+-moz-transition:none;
 transition:none;
+}
+.hero-badge{
+animation:none;
 }
 html{
 scroll-behavior:auto;

@@ -1,5 +1,11 @@
 if (window.gsap && window.ScrollTrigger) {
   gsap.registerPlugin(ScrollTrigger)
+  
+  // Disable animations for users who prefer reduced motion
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (prefersReducedMotion) {
+    return
+  }
 
   // Hero Animation
   const heroTl = gsap.timeline()
